@@ -1,0 +1,146 @@
+extends layout
+
+block content
+  h1= title
+  p Welcome to #{title}.
+    br
+    | Fill this table with numbers between 1 and 25!
+
+  form#bingo
+    table
+      tr
+        input(name="box1" type="text")
+        input(name="box2" type="text")
+        input(name="box3" type="text")
+        input(name="box4" type="text")
+        input(name="box5" type="text")
+        br
+      tr
+        input(name="box6" type="text")
+        input(name="box7" type="text")
+        input(name="box8" type="text")
+        input(name="box9" type="text")
+        input(name="box10" type="text")
+        br
+      tr
+        input(name="box11" type="text")
+        input(name="box12" type="text")
+        input(name="box13" type="text")
+        input(name="box14" type="text")
+        input(name="box15" type="text")
+        br
+      tr
+        input(name="box16" type="text")
+        input(name="box17" type="text")
+        input(name="box18" type="text")
+        input(name="box19" type="text")
+        input(name="box20" type="text")
+        br
+      tr
+        input(name="box21" type="text")
+        input(name="box22" type="text")
+        input(name="box23" type="text")
+        input(name="box24" type="text")
+        input(name="box25" type="text")
+        br
+    button(type='submit') ready
+  button(id='randomize') randomize
+  
+  script(src='/socket.io/socket.io.js')
+  script.
+    var socket = io();
+
+    socket.on('too late', function(){
+      var tableForm = document.querySelector('#bingo');
+      var randomButton = document.querySelector('#randomize');
+      document.body.removeChild(tableForm);
+      document.body.removeChild(randomButton);
+      document.body.innerHTML=`Sorry, you're too late.`;
+    });
+
+    $('#bingo').on('submit', function(e){
+      socket.emit('ready');
+      var item = $('#bingo').serializeArray();
+      e.preventDefault();
+
+      function addBox(num, row){
+        var box = document.createElement('button');
+        box.classList.add('btn-num');
+        box.innerHTML = item[num].value;
+        box.id = `button${num}`;
+        row.appendChild(box);
+      };
+
+      function addRow(num, table){
+        var row = document.createElement('tr');
+        addBox(num, row);
+        addBox(num+1, row);
+        addBox(num+2, row);
+        addBox(num+3, row);
+        addBox(num+4, row);
+        table.appendChild(row);
+      };
+
+      var table = document.createElement('table');
+      addRow(0, table);
+      addRow(5, table);
+      addRow(10, table);
+      addRow(15, table);
+      addRow(20, table);
+      
+      var tableForm = document.querySelector('#bingo');
+      var randomButton = document.querySelector('#randomize');
+      document.body.removeChild(tableForm);
+      document.body.removeChild(randomButton);
+      document.body.appendChild(table);
+    });
+
+    socket.on('other ready', function(){
+      socket.emit('other ready');
+    });
+
+
+    $('#randomize').on('click', function(){
+      var arr = Array(
+        1, 2, 3, 4, 5, 
+        6, 7, 8, 9, 10, 
+        11, 12, 13, 14, 15, 
+        16, 17, 18, 19, 20, 
+        21, 22, 23, 24, 25
+      );
+      arr.sort(function(){
+        return Math.random() - Math.random();
+      });
+      
+      for(var i=0; i<25; i++){
+        var box = document.getElementsByName(`box${i+1}`)[0];
+        box.value = arr[i];
+      }
+    });
+
+    socket.on('game start', function(){
+      alert('game start!');
+      $('button').on('click', function(e){
+        socket.emit('button click', e.target.innerHTML);
+      });
+    });
+
+    socket.on('button click', function(num){
+      console.log(num);
+      for(var i=0; i<25; i++){
+        var box = document.querySelector(`#button${i}`);
+        if (box.innerHTML === num){
+          box.classList.add('clicked');
+          socket.emit('clicked box', box.id);
+          break;
+        }
+      }
+    });
+
+    socket.on('win', function(){
+      alert('you win!');
+    })
+
+    socket.on('lose', function(){
+      alert('you lose...');
+    })
