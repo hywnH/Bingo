@@ -10,3 +10,11 @@ input, .btn-num{
 .clicked{
     background-color: cadetblue;
 }
+
+span{
+    display: none;
+}
+
+.turn{
+    display: inline;
+}

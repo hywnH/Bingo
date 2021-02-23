@@ -12,7 +12,7 @@ var http = require('http');
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '3000');
+var port = normalizePort(process.env.PORT || '8080');
 app.set('port', port);
 
 /**
@@ -37,6 +37,7 @@ io.on('connection', function(socket){
   console.log('user connected: ', socket.id);
   socket.ready = "no";
   socket.clicked = [];
+  socket.myTurn = false;
   if(n_user > 2) socket.emit('too late');
 
   // 접속이 끊어졌을 때
@@ -53,15 +54,24 @@ io.on('connection', function(socket){
   socket.on('other ready', function(){
     if(socket.ready === "ready") {
       console.log('game started');
-      io.emit('game start');
-    };
+      socket.myTurn = true;
+      socket.emit('game start', true);
+      socket.broadcast.emit('game start', false);
+    }
   });
 
   socket.on('button click', function(num){
-    io.emit('button click', num);
+    if(socket.myTurn){
+      socket.turn = !socket.turn;
+      io.emit('color button', num);
+    }
   });
 
-  socket.on('clicked box', function(box){
+  socket.on('next', function(){
+    socket.emit('next turn', socket.turn);
+  });
+
+  function checkBingo(box){
     socket.clicked.push(box);
     if(
       (socket.clicked.includes('button0')
@@ -139,7 +149,13 @@ io.on('connection', function(socket){
         socket.emit('win');
         socket.broadcast.emit('lose');
     }
-  });
+    else {
+      socket.myTurn = !socket.myTurn;
+      io.emit('next turn', socket.myTurn);
+    }
+  }
+
+  socket.on('clicked box', checkBingo);
 });
 
 /**

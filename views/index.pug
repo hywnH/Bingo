@@ -5,7 +5,8 @@ block content
   p Welcome to #{title}.
     br
     | Fill this table with numbers between 1 and 25!
-
+  span#your-turn Your turn!
+  span#other-turn Wait for your turn.
   form#bingo
     table
       tr
@@ -118,15 +119,23 @@ block content
       }
     });
 
-    socket.on('game start', function(){
+    var yourTurn = document.querySelector('#your-turn');
+    var otherTurn = document.querySelector('#other-turn');
+
+    socket.once('game start', function(turn){
       alert('game start!');
-      $('button').on('click', function(e){
-        socket.emit('button click', e.target.innerHTML);
-      });
+      if(turn)
+        yourTurn.classList.add('turn');
+      else
+        otherTurn.classList.add('turn');
+      $('.btn-num').on('click', clickHandler);
     });
 
-    socket.on('button click', function(num){
-      console.log(num);
+    function clickHandler(e){
+      socket.emit('button click', e.target.innerHTML);
+    }
+
+    socket.on('color button', function(num){
       for(var i=0; i<25; i++){
         var box = document.querySelector(`#button${i}`);
         if (box.innerHTML === num){
@@ -135,12 +144,18 @@ block content
           break;
         }
       }
+      socket.emit('next');
     });
 
-    socket.on('win', function(){
-      alert('you win!');
-    })
+    socket.on('next turn', function(turn){
+      yourTurn.classList.toggle('turn');
+      otherTurn.classList.toggle('turn');
+    });
 
-    socket.on('lose', function(){
+    socket.once('win', function(){
+      alert('you win!');
+    });
+
+    socket.once('lose', function(){
       alert('you lose...');
-    })
+    });
